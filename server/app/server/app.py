@@ -13,17 +13,9 @@ from app.server.routes.userManagement import router as userMRouter
 from app.dashboard.app import server
 
 
-class DashFilter(logging.Filter):
-    def filter(self, record) :
-        msg = record.getMessage()
-        return not any(
-            path in msg
-            for path in [
-                "/_dash",
-                "/dash/assets/"
-            ]
-        )
-logging.getLogger("uvicorn.access").addFilter(DashFilter())
+# disable loggin in server console for dash internal routes
+logging.getLogger("uvicorn.access").addFilter(
+    lambda record: not any(path in record.getMessage() for path in ["/_dash","/dash/assets/"]))
 
 
 app = FastAPI()
