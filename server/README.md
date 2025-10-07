@@ -12,7 +12,7 @@
 
 1. Install PostgreSQL
 
-    $ `apt install postgres`
+    $ `apt install postgresql`
 2. Login as superuser or create own user account with sufficient privileges
 
     $ `sudo -u postgres psql postgres`
@@ -116,19 +116,22 @@
 1. In the directory where the root of the server is located, clone the dashboard repository
 
     $ `git clone https://github.com/FrancisWolff/LeoCommon-Dashboard.git`
-2. Move the dashboard server folder into the LeoCommon server folder and merge all folders/ replace all files
+2. Copy the dashboard server folder into the LeoCommon server folder and merge all folders/ replace all files
 
-    $ `mv <./LeoCommon-Dashboard/server> <./server>`
-3. Install dashboad dependencies: in root folder of the server, activate the virtual environment
+    $ `cp -R ./LeoCommon-Dashboard/server/* ./server`
+3. Remove the LeoCommon-Dashboard directory
+
+    $ `rm -r -f ./LeoCommon-Dashboard`
+4. Install dashboad dependencies: in root folder of the server, activate the virtual environment
 
     $ `source env/bin/activate`
-4. Install requirements
+5. Install requirements
 
     $ `pip install -r requirements.txt`
-5. Deactivate virtual environment
+6. Deactivate virtual environment
 
     $ `deactivate`
-6. Locate the `.env` file in the `/env` directory, add the following lines and fill the empty quotation marks with own values
+7. Locate the `.env` file in the `/env` directory, add the following lines and fill the empty quotation marks with own values
 
     `DASH_DB_USER=""` the name of the postgres user ("postgres" or own user account)
 
@@ -137,5 +140,5 @@
     `DASH_USER=""` the name of the dashboard user from step 2 in Setup LeoCommon
 
     `DASH_PASSWORD=""` the password of the dashboard user from step 2 in Setup LeoCommon
-7. Setup is now complete, the data_daemon will start every day at midnight to check for new data and add it to the dashboard database
+8. Setup is now complete, the data_daemon will start every day at midnight to check for new data and add it to the dashboard database
 
