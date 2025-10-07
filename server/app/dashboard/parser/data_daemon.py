@@ -15,10 +15,13 @@ from parser_iridium import agg_to_df
 num_datapoints = 100
 # path to temp folder, assume script gets run by startup.sh in root folder
 temp_path = Path("./app/dashboard/parser/temp")
+temp_path.mkdir(exist_ok=True)
 
 
 # aggregate all data from DB.signal and DB.packets so public page has only num_datapoints many datapoints
 def agg_all_data(conn, cur):
+    cur.execute("""INSERT INTO jobs (name) VALUES (%s) ON CONFLICT DO NOTHING""", ("public_page", ))
+
     sql = ("""INSERT INTO sensor_job (job_name, sensor_name) 
            VALUES (%s, %s) 
            ON CONFLICT (job_name, sensor_name) 
@@ -35,10 +38,17 @@ def agg_all_data(conn, cur):
             AND s.id = p.id
             GROUP BY p.type""")
     cur.execute(sql, ("public_page", ))
-    df_packets = pd.DataFrame(data=cur.fetchall(), columns=["type", "count"])
-    for i, r in df_packets.iterrows():
-        sql = "INSERT INTO packets (id, type, count) VALUES (%s, %s, %s)"
-        cur.execute(sql, (index, r["type"], int(r["count"])))
+    data = cur.fetchall()
+    
+    if data:
+        df_packets = pd.DataFrame(data=data, columns=["type", "count"])
+        for i, r in df_packets.iterrows():
+            sql = """INSERT INTO packets (id, type, count) 
+                    VALUES (%s, %s, %s) 
+                    ON CONFLICT ("id", "type") DO UPDATE SET
+                    type = EXCLUDED.type, 
+                    count = EXCLUDED.count"""
+            cur.execute(sql, (index, r["type"], int(r["count"])))
 
     # aggregate signal data
     sql = ("SELECT s.timestamp AS time, s.signal_level, s.background_noise, s.snr, s.count AS counter "
@@ -48,28 +58,29 @@ def agg_all_data(conn, cur):
            "ORDER BY s.timestamp")
     cur.execute(sql, ("public_page", ))
 
-    colnames = [desc[0] for desc in cur.description]
     rows = cur.fetchall()
-    # convert to list of dicts
-    result = [dict(zip(colnames, row)) for row in rows]
+    if rows:
+        colnames = [desc[0] for desc in cur.description]
+        # convert to list of dicts
+        result = [dict(zip(colnames, row)) for row in rows]
 
-    # get upper and lower bound for time
-    time_lower = result[0]["time"]
-    time_upper = result[len(result)-1]["time"]
+        # get upper and lower bound for time
+        time_lower = result[0]["time"]
+        time_upper = result[len(result)-1]["time"]
 
-    cols = ['signal_level', 'background_noise', 'snr']
-    df_signal_agg = agg_to_df(result, num_datapoints, time_lower, time_upper, cols, None, ["counter"])
+        cols = ['signal_level', 'background_noise', 'snr']
+        df_signal_agg = agg_to_df(result, num_datapoints, time_lower, time_upper, cols, None, ["counter"])
 
-    for i, r in df_signal_agg.iterrows():
-        cur.execute("""INSERT INTO signal (id, timestamp, "signal_level", "background_noise", snr, count) 
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT ("id", "timestamp") DO UPDATE SET 
-                    "signal_level" = EXCLUDED."signal_level", 
-                    "background_noise" = EXCLUDED."background_noise", 
-                    snr = EXCLUDED.snr, 
-                    count = EXCLUDED.count""",
-                    (index, float(r['time']), float(r['signal_level']), float(r['background_noise']),
-                     float(r['snr']), float(r['counter'])))
+        for i, r in df_signal_agg.iterrows():
+            cur.execute("""INSERT INTO signal (id, timestamp, "signal_level", "background_noise", snr, count) 
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT ("id", "timestamp") DO UPDATE SET 
+                        "signal_level" = EXCLUDED."signal_level", 
+                        "background_noise" = EXCLUDED."background_noise", 
+                        snr = EXCLUDED.snr, 
+                        count = EXCLUDED.count""",
+                        (index, float(r['time']), float(r['signal_level']), float(r['background_noise']),
+                         float(r['snr']), float(r['counter'])))
     conn.commit()
 
 
@@ -119,7 +130,7 @@ def check_for_new_data(session, conn, cur):
     return jobs_to_add
 
 
-def handle_new_data(session, conn, cur, jobs_to_add):
+def handle_new_data(session, conn, cur, auth, jobs_to_add):
     # get command for job_to_add and download file if command is some kind of sniffing
     for job_to_add in jobs_to_add:
         id = job_to_add["id"]
@@ -148,6 +159,11 @@ def handle_new_data(session, conn, cur, jobs_to_add):
         elif "sniff" in command:
             uri = 'http://127.0.0.1:8000/data/download/' + id
             response = session.get(uri)
+
+            # if token expired while running, login and download file again
+            if response.status_code == 401:
+                session.post('http://127.0.0.1:8000/login/userlogin', auth)
+                response = session.get(uri)
 
             # skip job if file couldn't be downloaded, so we can retry later
             if response.status_code != 200:
@@ -281,7 +297,7 @@ def start():
         # if there are, handle data (download, parse, agg, save in DB) and agg signal data for all jobs to display on
         # public page
         if jobs_to_add is not None:
-            handle_new_data(session, conn, cur, jobs_to_add)
+            handle_new_data(session, conn, cur, auth, jobs_to_add)
             agg_all_data(conn, cur)
 
     print("Dashboard parser: finished")
@@ -290,7 +306,7 @@ def start():
 
 
 def run():
-    schedule.every().day.at("15:28").do(start)
+    schedule.every().day.at("00:00").do(start)
 
     while True:
         schedule.run_pending()
@@ -299,4 +315,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
