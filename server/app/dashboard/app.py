@@ -48,7 +48,7 @@ app.validation_layout = html.Div([
 
 # only let valid routes pass
 @server.before_request
-async def auth():
+def auth():
     path = request.path
     # let dash internal requests pass
     if any(path.startswith(route) for route in internal_routes):
@@ -69,3 +69,4 @@ async def auth():
 if __name__ == '__main__':
     app.run(debug=False,
             port=8050)
+
