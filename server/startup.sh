@@ -43,7 +43,7 @@ source "env/bin/activate"
 export PYTHONPATH=$PWD
 # terminate all background processes if app/main.py is terminated
 trap "kill 0" EXIT
-# run app/dashboard/parser/data_deamon.py in background (check for new data every day at midnight)
+# run app/dashboard/parser/data_daemon.py in background (check for new data every day at midnight)
 python3 "app/dashboard/parser/data_daemon.py" &
 python3 "app/main.py"
 
