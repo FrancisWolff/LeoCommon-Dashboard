@@ -13,18 +13,16 @@
 1. Install PostgreSQL
 
     $ `apt install postgresql`
-2. Login as superuser or create own user account with sufficient privileges
+2. Login as superuser or create own user account with sufficient privileges, then create new database with name postgres
+
+    $ `sudo -u postgres createdb postgres`
+3. Enter database
 
     $ `sudo -u postgres psql postgres`
-3. Change the password for the superuser to something secure ( ! important step, default password "postgres" not secure ! )
+4. Change the password of the superuser to something secure ( ! important step, default password "postgres" not secure ! )
 
     $ `\password postgres`
-3. Create database with name postgres
 
-    $ `createdb postgres`
-4. Enter database
-
-    $ `psql postgres`
 5. Create tables
 
 ```
@@ -141,4 +139,3 @@
 
     `DASH_PASSWORD=""` the password of the dashboard user from step 2 in Setup LeoCommon
 8. Setup is now complete, the data_daemon will start every day at midnight to check for new data and add it to the dashboard database
-
