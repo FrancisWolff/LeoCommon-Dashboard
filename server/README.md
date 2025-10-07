@@ -138,4 +138,3 @@
     `DASH_USER=""` the name of the dashboard user from step 2 in Setup LeoCommon
 
     `DASH_PASSWORD=""` the password of the dashboard user from step 2 in Setup LeoCommon
-8. Setup is now complete, the data_daemon will start every day at midnight to check for new data and add it to the dashboard database
