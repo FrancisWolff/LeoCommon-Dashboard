@@ -205,7 +205,7 @@ def agg_to_df(list, num_datapoints, time_lower, time_upper, agg_cols, max_cols=N
                 df.loc[slot, col] = np.minimum(df.loc[slot, col], float(l[col]))
     # divide all agg_cols by the package count of the respective timeslot, count column can be used for running_sum
     for col in agg_cols:
-        df[col] = df[col] / df['count']
+        df[col] = np.ceil(df[col] / df['count'])
 
     return df
 
