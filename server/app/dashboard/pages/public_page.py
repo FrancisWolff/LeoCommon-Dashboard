@@ -72,9 +72,10 @@ def layout(**kwargs):
     df_signal_sum = df_signal.sort_values(by='timestamp').copy()
     df_signal_sum['sum'] = df_signal_sum['count'].cumsum()
 
-    cur.execute("""SELECT type, SUM(count) 
-                FROM packets
-                GROUP BY type""")
+    cur.execute("""SELECT p.type, p.count 
+                FROM packets as p, sensor_job as s
+                WHERE p.id = s.id 
+                AND s.job_name = %s""", ("public_page", ))
     df_packets = pd.DataFrame(cur.fetchall(), columns=['type', 'count'])
 
     cur.close()
