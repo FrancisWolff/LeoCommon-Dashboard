@@ -30,7 +30,7 @@ db_user, db_password, user, password = credentials.get()
 ###
 
 # returns dataframe [[attribute -> count], [packet type -> count]...]
-def count_packets(dataframe, attribute):
+def count_attribute(dataframe, attribute):
     dataframe = dataframe.groupby([attribute]).count()
     dataframe = dataframe.rename(columns={'time': 'count'}).reset_index()
     return dataframe
@@ -235,7 +235,7 @@ def start(index):
             df_frames = fill_df(frames, type_dict)
 
             # add Packet Type and Count into DB.packets
-            df_packet_count = count_packets(df_frames, 'frame_type')
+            df_packet_count = count_attribute(df_frames, 'frame_type')
 
             for i, r in df_packet_count.iterrows():
                 cur.execute("""INSERT INTO packets (id, type, count) 
