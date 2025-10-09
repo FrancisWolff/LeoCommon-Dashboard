@@ -314,6 +314,8 @@ def run():
 
 
 if __name__ == "__main__":
-    # run once on server restart, then every day at midnight
+    # run once on server restart but wait for everything to initialize
+    time.sleep(10)
     start()
+    # then run every day at midnight
     run()
