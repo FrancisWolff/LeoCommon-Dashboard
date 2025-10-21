@@ -6,6 +6,8 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import psycopg2 as ps
 import app.dashboard.credentials as credentials
+import requests
+from flask import request
 
 
 dash.register_page(__name__, path_template="/heatmap/<name>")
@@ -50,6 +52,13 @@ def create_sensor_df(cur, sensor, years=2):
         data = cur.fetchall()
         df_jobs = pd.DataFrame(data=data, columns=["name", "start_time", "end_time"])
     else:
+        # perform authentication before including sensor name in query
+        url = "http://127.0.0.1:8000/login/auth"
+        cookies = request.cookies
+        response = requests.get(url, cookies=cookies)
+        if response.status_code != 200:
+            return None
+        
         # get all jobs for this sensor
         sql = """SELECT j.name, j.start_time, j.end_time 
                 FROM jobs as j, sensor_job as s 
@@ -106,8 +115,12 @@ def layout(name=None, **kwargs):
                       port=5432)
     cur = conn.cursor()
 
-    # create dataframe, define labels and heatmap graph
+    # create dataframe
     df = create_sensor_df(cur, name, 2)
+    # return none if user is unauthorized
+    if df is None:
+        return None
+    # define labels and heatmap graph
     x_labels = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jul', 7: 'Jun', 8: 'Aug', 9: 'Sep', 10: 'Oct',
                 11: 'Nov', 12: 'Dec'}
     y_labels = {i: str(i) for i in df.year.unique()}
