@@ -206,7 +206,9 @@ def agg_to_df(list, num_datapoints, time_lower, time_upper, agg_cols, max_cols=N
     # divide all agg_cols by the package count of the respective timeslot, count column can be used for running_sum
     for col in agg_cols:
         df[col] = np.ceil(df[col] / df['count'])
-
+    # drop rows that contain NaN values
+    df.dropna(inplace=True)
+    
     return df
 
 
